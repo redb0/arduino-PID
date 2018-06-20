@@ -1,0 +1,85 @@
+#include <Servo.h>
+#include <pid.h>
+
+#define PIN_OUTPUT 5               // пин подключения сервомотора
+
+float setPoint;                    // уставка
+int u;                             // управляющее воздействие
+int output;                        // выход объекта (положение сервомотора)
+int last_u;                        // прошлое значение управляющего воздействия
+int last_output;                   // прошлое значение выхода объекта
+float samplingTime = 0.5;          // время дискретизации в секундах
+unsigned long operating_time;      // таймер рабочего времени
+unsigned long sampling_timer;      // таймер времени дискретизации
+unsigned long last_sampling_timer; // прошлое значение таймера времени дискретизации
+unsigned long time_period = (unsigned long)30*1000; // продолжительность периодов (время между изменением уставки)
+
+PID myPID(1, 0.15, 0.15);
+
+Servo myservo;
+
+float getSetPoint() {
+  if (operating_time <= time_period) return (float)50;
+  if ((operating_time > time_period) && (operating_time <= 2*time_period)) return (float)150;
+  if ((operating_time > 2*time_period) && (operating_time <= 3*time_period)) return (float)100;
+  if (operating_time > 3*time_period) return (float)30;
+}
+
+int getX(int *u, int *x) {  
+  return *u + *x;
+}
+
+void setup() {
+  Serial.begin(9600);
+  myservo.attach(PIN_OUTPUT);
+  myservo.write(0); // начально положение сервомотора
+  
+  float u1 = -90; // ограничения на управление
+  float u2 = 90;
+  myPID.setSamplingTime(&samplingTime);
+  myPID.setOutputLimits(&u1, &u2);
+  
+  operating_time = millis();
+  last_sampling_timer = millis();
+  last_u = 0;
+  last_output = 0;
+
+  Serial.print("K_p: ");
+  Serial.println(myPID.getKp());
+  Serial.print("K_i: ");
+  Serial.println(myPID.getKi());
+  Serial.print("K_d: ");
+  Serial.println(myPID.getKd());
+  Serial.print("Sampling Time: ");
+  Serial.println(myPID.getSamplingTime());
+  Serial.println("---------------");
+}
+
+void loop() {
+  operating_time = millis();
+  sampling_timer = millis();
+  
+  // контролируем время дискретизации
+  if (sampling_timer - last_sampling_timer >= (unsigned long)(samplingTime*1000)) {
+    last_sampling_timer = millis();
+
+    output = getX(&last_u, &last_output);  // эмулируем измерение положения сервомотора
+    setPoint = getSetPoint();              // получаем уставку
+    
+    float x1 = (float)output;
+    u = (int)myPID.update(&setPoint, &x1); // вычисляем управляющее воздействие
+
+    myservo.write(output);                 // изменяем положение сервомотора
+    
+    last_u = u;                            // обновляем старые значения
+    last_output = output;
+
+    Serial.print("Уставка: ");
+    Serial.println(setPoint);
+    Serial.print("Объект: ");
+    Serial.println(output);
+    Serial.print("Управление: ");
+    Serial.println(u);
+  }
+}
+
