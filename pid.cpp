@@ -1,15 +1,16 @@
 #include "pid.h"
 
 PID::PID(float p, float i, float d) {
-    k_i = i;
-    k_p = p;
-    k_d = d;
     _u1 = 0;
     _u2 = 0;
     _past_u = 0;
     _past_err = 0;
     _past_past_err = 0;
+
     _sampling_time = 0.1;
+    k_i = i * _sampling_time;
+    k_p = p;
+    k_d = d / _sampling_time;
 }
 
 PID::PID() {
@@ -48,14 +49,15 @@ void PID::setOutputLimits(float *u1, float *u2) {
 void PID::setSamplingTime(float *t) {
     if (*t <= 0) return;
     //_sampling_time = (float)*t / (float)1000;
+    k_i = k_i * (*t / _sampling_time);
+    k_d = k_d * _sampling_time / (*t);
     _sampling_time = *t;
-    k_i = k_i * _sampling_time;
-    k_d = k_d / _sampling_time;
 }
 
 void PID::setCoefficients(float p, float i, float d) {
-    if ((p < 0) || (i < 0) || (d < 0)
-            || (_sampling_time <= 0)) return;
+//    if ((p < 0) || (i < 0) || (d < 0)
+//            || (_sampling_time <= 0)) return;
+    if (_sampling_time <= 0) return;
     //float sampling_time_sec = ((float)*_sampling_time) / 1000;
 
     k_p = p;
