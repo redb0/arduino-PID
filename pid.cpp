@@ -1,16 +1,39 @@
 #include "pid.h"
 
+PID::PID(float p, float i, float d, bool no_dk, bool pom) {
+    _u1 = 0;
+    _u2 = 0;
+    _past_u = 0;
+    _past_err = 0;
+    _past_past_err = 0;
+    _last_input = 0;
+    _last_last_input = 0;
+
+    _sampling_time = 0.1;
+    k_i = i * _sampling_time;
+    k_p = p;
+    k_d = d / _sampling_time;
+
+    _no_dk = no_dk;
+    _pom = pom;
+}
+
 PID::PID(float p, float i, float d) {
     _u1 = 0;
     _u2 = 0;
     _past_u = 0;
     _past_err = 0;
     _past_past_err = 0;
+    _last_input = 0;
+    _last_last_input = 0;
 
     _sampling_time = 0.1;
     k_i = i * _sampling_time;
     k_p = p;
     k_d = d / _sampling_time;
+
+    _no_dk = !NO_D_K;
+    _pom = PoE;
 }
 
 PID::PID() {
@@ -22,6 +45,8 @@ PID::PID() {
     _past_u = 0;
     _past_err = 0;
     _past_past_err = 0;
+    _last_input = 0;
+    _last_last_input = 0;
     _sampling_time = 0.1;
 }
 
@@ -34,6 +59,8 @@ void PID::reset() {
     _past_u = 0;
     _past_err = 0;
     _past_past_err = 0;
+    _last_input = 0;
+    _last_last_input = 0;
     _sampling_time = 0.1;
 }
 
@@ -66,13 +93,39 @@ void PID::setCoefficients(float p, float i, float d) {
 }
 
 float PID::update(float *set_point, float *value_obj) {
-    //u = past_u + k_p * (err - past_err) + k_i * err + k_d * (err - 2*past_err - past_past_err)
     float err = *set_point - *value_obj;
-    float u;
-    u = _past_u + k_p * (err - _past_err) + k_i * err + k_d * (err - 2 * _past_err + _past_past_err);
+    float u = 0;
+
+    // Classic PID
+    // U(t) = U(t-1) + P + I + D
+    // P = Kp * (E(t) - E(t-1))
+    // I = Ki * E(t)
+    // D = Kd * (E(t) - 2 * E(t-1) + E(t-2))
+    // with NO_D_K
+    // D = -[Kd * (X(t) - 2 * X(t-1) + X(t-2))]
+    // with PoM
+    // P = -[Kp * (X(t) - X(t-1))]
+
+    u += k_i * err;
+    if (u > *_u2) u = *_u2;
+    if (u < *_u1) u = *_u1;
+    if (_no_dk == NO_D_K) {
+        u -= k_d * (*value_obj - 2 * _last_input + _last_last_input);
+    } else {
+        u += k_d * (err - 2 * _past_err + _past_past_err);
+    }
+    if (_pom == PoM) {
+        u -= k_p * (*value_obj - _last_last_input);
+    } else {
+        u += k_p * (err - _past_err);
+    }
+
+    //u = _past_u + k_p * (err - _past_err) + k_i * err + k_d * (err - 2 * _past_err + _past_past_err);
+    _last_last_input = _last_input;
+    _last_input = *value_obj;
     _past_past_err = _past_err;
     _past_err = err;
-    //_past_u = u;
+
     if (*_u1 < *_u2) {
         if (u < *_u1) u = *_u1;
         if (u > *_u2) u = *_u2;
