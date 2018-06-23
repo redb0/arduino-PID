@@ -3,10 +3,13 @@
 
 //вкл/выкл контроллера
 //http://brettbeauregard.com/blog/2011/04/improving-the-beginner%e2%80%99s-pid-onoff/
-//инициализация контроллера
+
+//инициализация контроллера !
 //http://brettbeauregard.com/blog/2011/04/improving-the-beginner%e2%80%99s-pid-initialization/
-//направление ??? (почти готово)
+
+//направление !
 //http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-direction/
+
 //http://brettbeauregard.com/blog/
 //https://github.com/br3ttb/Arduino-PID-Library/blob/master/PID_v1.cpp
 class PID
@@ -16,15 +19,25 @@ public:
     #define PoM false
     #define PoE true
 
-    PID(float p, float i, float d, bool no_dk, bool pom);
+    #define DIRECT true
+    #define REVERSE false
+
+    #define ACTIVE true
+    #define NOT_ACTIVE false
+
+    PID(float p, float i, float d, float s_t, bool no_dk, bool pom, bool);
     PID(float p, float i, float d);
     PID();
     void reset();
     float update(float *set_point, float *value_obj);
     void setOutputLimits(float *u1, float *u2);
-    void setCoefficients(float p, float i, float d);
+    void setCoefficients(float p, float i, float d, bool);
     //void setSamplingTime(unsigned long *t);
     void setSamplingTime(float*);
+    void setReverseDirection();
+
+    void setInputOutput(float*, float*, float*);
+    void initialize();
 
     float getKi();
     float getKp();
@@ -34,6 +47,8 @@ public:
 private:
     bool _no_dk;
     bool _pom;
+
+    //bool with_initialization;
 
     float k_i;
     float k_p;

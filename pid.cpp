@@ -1,6 +1,6 @@
 #include "pid.h"
 
-PID::PID(float p, float i, float d, bool no_dk, bool pom) {
+PID::PID(float p, float i, float d, float s_t, bool no_dk, bool pom, bool direction) {
     _u1 = 0;
     _u2 = 0;
     _past_u = 0;
@@ -9,13 +9,16 @@ PID::PID(float p, float i, float d, bool no_dk, bool pom) {
     _last_input = 0;
     _last_last_input = 0;
 
-    _sampling_time = 0.1;
-    k_i = i * _sampling_time;
-    k_p = p;
-    k_d = d / _sampling_time;
+    if (s_t > 0) {
+        _sampling_time = s_t;
+    } else {
+        _sampling_time = 0.1;
+    }
+    setCoefficients(p, i, d, direction);
 
     _no_dk = no_dk;
     _pom = pom;
+    //with_initialization = false;
 }
 
 PID::PID(float p, float i, float d) {
@@ -81,15 +84,34 @@ void PID::setSamplingTime(float *t) {
     _sampling_time = *t;
 }
 
-void PID::setCoefficients(float p, float i, float d) {
-//    if ((p < 0) || (i < 0) || (d < 0)
-//            || (_sampling_time <= 0)) return;
-    if (_sampling_time <= 0) return;
-    //float sampling_time_sec = ((float)*_sampling_time) / 1000;
+void PID::setCoefficients(float p, float i, float d, bool direction) {
+    if ((p < 0) || (i < 0) || (d < 0) || (_sampling_time <= 0)) return;
 
     k_p = p;
     k_i = i * _sampling_time;
     k_d = d / _sampling_time;
+    if (direction == REVERSE) {
+        setReverseDirection();
+    }
+}
+
+void PID::setReverseDirection() {
+    k_p = 0 - k_p;
+    k_i = 0 - k_i;
+    k_d = 0 - k_d;
+}
+
+void PID::setInputOutput(float *input, float *last_input, float *object_value) {
+    //with_initialization = true;
+    _last_input = *input;
+    _last_input = *last_input; // ??? = 0
+    _last_last_input = 0;
+
+    _past_u = *object_value;
+    if (*_u1 < *_u2) {
+        if (_past_u < *_u1) _past_u = *_u1;
+        if (_past_u > *_u2) _past_u = *_u2;
+    }
 }
 
 float PID::update(float *set_point, float *value_obj) {
@@ -105,8 +127,13 @@ float PID::update(float *set_point, float *value_obj) {
     // D = -[Kd * (X(t) - 2 * X(t-1) + X(t-2))]
     // with PoM
     // P = -[Kp * (X(t) - X(t-1))]
-
-    u += k_i * err;
+//    if (with_initialization) {
+//        u += _past_u;
+//        with_initialization = false;
+//    } else {
+//        u += _past_u + k_i * err;
+//    }
+    u += _past_u + k_i * err;
     if (u > *_u2) u = *_u2;
     if (u < *_u1) u = *_u1;
     if (_no_dk == NO_D_K) {
@@ -115,7 +142,7 @@ float PID::update(float *set_point, float *value_obj) {
         u += k_d * (err - 2 * _past_err + _past_past_err);
     }
     if (_pom == PoM) {
-        u -= k_p * (*value_obj - _last_last_input);
+        u -= k_p * (*value_obj - _last_input);
     } else {
         u += k_p * (err - _past_err);
     }
