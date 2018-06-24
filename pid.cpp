@@ -1,6 +1,7 @@
 #include "pid.h"
 
-PID::PID(float p, float i, float d, float s_t, bool no_dk, bool pom, bool direction) {
+PID::PID(float p, float i, float d, float s_t,
+         bool no_dk, bool pom, bool direction, bool mode) {
     _u1 = 0;
     _u2 = 0;
     _past_u = 0;
@@ -18,6 +19,7 @@ PID::PID(float p, float i, float d, float s_t, bool no_dk, bool pom, bool direct
 
     _no_dk = no_dk;
     _pom = pom;
+    _mode = mode;
     //with_initialization = false;
 }
 
@@ -67,6 +69,10 @@ void PID::reset() {
     _sampling_time = 0.1;
 }
 
+void PID::setMode(bool mode) {
+    _mode = mode;
+}
+
 void PID::setOutputLimits(float *u1, float *u2) {
     if (*u1 < *u2) {
         _u1 = u1;
@@ -101,13 +107,13 @@ void PID::setReverseDirection() {
     k_d = 0 - k_d;
 }
 
-void PID::setInputOutput(float *input, float *last_input, float *object_value) {
+void PID::setInputOutput(float input, float last_input, float object_value) {
     //with_initialization = true;
-    _last_input = *input;
-    _last_input = *last_input; // ??? = 0
+    _last_input = input;
+    _last_input = last_input; // ??? = 0
     _last_last_input = 0;
 
-    _past_u = *object_value;
+    _past_u = object_value;
     if (*_u1 < *_u2) {
         if (_past_u < *_u1) _past_u = *_u1;
         if (_past_u > *_u2) _past_u = *_u2;
@@ -118,6 +124,8 @@ float PID::update(float *set_point, float *value_obj) {
     float err = *set_point - *value_obj;
     float u = 0;
 
+    //if (_mode == NOT_ACTIVE) return 0;
+
     // Classic PID
     // U(t) = U(t-1) + P + I + D
     // P = Kp * (E(t) - E(t-1))
@@ -127,24 +135,21 @@ float PID::update(float *set_point, float *value_obj) {
     // D = -[Kd * (X(t) - 2 * X(t-1) + X(t-2))]
     // with PoM
     // P = -[Kp * (X(t) - X(t-1))]
-//    if (with_initialization) {
-//        u += _past_u;
-//        with_initialization = false;
-//    } else {
-//        u += _past_u + k_i * err;
-//    }
-    u += _past_u + k_i * err;
-    if (u > *_u2) u = *_u2;
-    if (u < *_u1) u = *_u1;
-    if (_no_dk == NO_D_K) {
-        u -= k_d * (*value_obj - 2 * _last_input + _last_last_input);
-    } else {
-        u += k_d * (err - 2 * _past_err + _past_past_err);
-    }
-    if (_pom == PoM) {
-        u -= k_p * (*value_obj - _last_input);
-    } else {
-        u += k_p * (err - _past_err);
+
+    if (_mode == NOT_ACTIVE) {
+        u += _past_u + k_i * err;
+        if (u > *_u2) u = *_u2;
+        if (u < *_u1) u = *_u1;
+        if (_no_dk == NO_D_K) {
+            u -= k_d * (*value_obj - 2 * _last_input + _last_last_input);
+        } else {
+            u += k_d * (err - 2 * _past_err + _past_past_err);
+        }
+        if (_pom == PoM) {
+            u -= k_p * (*value_obj - _last_input);
+        } else {
+            u += k_p * (err - _past_err);
+        }
     }
 
     //u = _past_u + k_p * (err - _past_err) + k_i * err + k_d * (err - 2 * _past_err + _past_past_err);
@@ -152,6 +157,8 @@ float PID::update(float *set_point, float *value_obj) {
     _last_input = *value_obj;
     _past_past_err = _past_err;
     _past_err = err;
+
+    if (_mode == NOT_ACTIVE) return 0;
 
     if (*_u1 < *_u2) {
         if (u < *_u1) u = *_u1;
