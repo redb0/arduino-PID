@@ -30,16 +30,16 @@ public:
     PID(float p, float i, float d);
     PID();
     void reset();
-    float update(float *set_point, float *value_obj);
-    void setOutputLimits(float *u1, float *u2);
-    void setCoefficients(float p, float i, float d, bool);
-    void setSamplingTime(float*);
-    void setReverseDirection();
 
-    void setInputOutput(float, float, float);
-    void initialize();
-
-    void setMode(bool);
+    float update(float *set_point, float *value_obj); //
+    void setOutputLimits(float *u1, float *u2);       // +
+    void setCoefficients(float p, float i, float d,
+                         bool direction);             // +
+    void setSamplingTime(float*);                     // +
+    void setReverseDirection();                       // +
+    void setInputOutput(float, float, float);         // +
+    //void initialize();                                //
+    void setMode(bool);                               // +
 
     float getKi();
     float getKp();
