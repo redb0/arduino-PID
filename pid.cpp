@@ -222,8 +222,6 @@ float PID::update(float *set_point, float *value_obj) {
     float err = *set_point - *value_obj;
     float u = 0;
 
-    //if (_mode == NOT_ACTIVE) return 0;
-
     // Classic PID
     // U(t) = U(t-1) + P + I + D
     // P = Kp * (E(t) - E(t-1))
@@ -250,7 +248,6 @@ float PID::update(float *set_point, float *value_obj) {
         }
     }
 
-    //u = _past_u + k_p * (err - _past_err) + k_i * err + k_d * (err - 2 * _past_err + _past_past_err);
     _last_last_input = _last_input;
     _last_input = *value_obj;
     _past_past_err = _past_err;
