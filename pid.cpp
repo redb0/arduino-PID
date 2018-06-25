@@ -6,10 +6,13 @@
  * @param i         - интегральный коэффициент.
  * @param d         - дифференциальный коэффициент.
  * @param s_t       - врем дискретизации в секундах.
- * @param no_dk     - флаг для использования альтернативной
+ * @param no_dk     - флаг (NO_D_K) для использования альтернативной
  *                    дифференциальной составляющей.
  * @param pom       - флаг для использования альтернативной
- *                    пропорциональной составляющей.
+ *                    пропорциональной составляющей (PoE - стандартна
+ *                    пропорциональная составляющая, основанная на изменении
+ *                    ошибки. PoM - пропорциональная составляющая,
+ *                    основанная на изменении значения выхода объекта.).
  * @param direction - флаг направления (DIRECT - прямое, REVERSE - обратное).
  * @param mode      - флаг режима работы (ACTIVE - автоматический,
  *                    NOT_ACTIVE - ручной).
@@ -54,9 +57,7 @@ PID::PID(float p, float i, float d) {
     _last_last_input = 0;
 
     _sampling_time = 0.1;
-    k_i = i * _sampling_time;
-    k_p = p;
-    k_d = d / _sampling_time;
+    setCoefficients(p, i, d, DIRECT);
 
     _no_dk = !NO_D_K;
     _pom = PoE;
@@ -233,7 +234,7 @@ float PID::update(float *set_point, float *value_obj) {
     // with PoM
     // P = -[Kp * (X(t) - X(t-1))]
 
-    if (_mode == NOT_ACTIVE) {
+    if (_mode) { // _mode == ACTIVE
         u += _past_u + k_i * err;
         if (u > *_u2) u = *_u2;
         if (u < *_u1) u = *_u1;
@@ -255,7 +256,7 @@ float PID::update(float *set_point, float *value_obj) {
     _past_past_err = _past_err;
     _past_err = err;
 
-    if (_mode == NOT_ACTIVE) return 0;
+    if (!_mode) return 0; // _mode == NOT_ACTIVE
 
     if (*_u1 < *_u2) {
         if (u < *_u1) u = *_u1;
@@ -270,3 +271,4 @@ float PID::getKd() {return k_d;}
 float PID::getKi() {return k_i;}
 float PID::getKp() {return k_p;}
 float PID::getSamplingTime() {return _sampling_time;}
+bool PID::getMode() {return _mode;}

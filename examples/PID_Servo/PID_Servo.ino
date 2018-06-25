@@ -14,7 +14,10 @@ unsigned long sampling_timer;      // таймер времени дискрет
 unsigned long last_sampling_timer; // прошлое значение таймера времени дискретизации
 unsigned long time_period = (unsigned long)30*1000; // продолжительность периодов (время между изменением уставки)
 
-PID myPID(1, 0.15, 0.15);
+//PID myPID(1.0, 0.15, 0.15, 1.0, NO_D_K, PoM, DIRECT, ACTIVE); // раскомментируйте эту строку и закомментируйте строку 20
+                                                              // для использование PID-регуляятора с альтернативными 
+                                                              // пропорциональной и дифференциальной составляющей
+PID myPID(1.0, 0.15, 0.15); // использование стандартной рекурентной формулы PID-регулятора
 
 Servo myservo;
 
@@ -38,6 +41,7 @@ void setup() {
   float u2 = 90;
   myPID.setSamplingTime(&samplingTime);
   myPID.setOutputLimits(&u1, &u2);
+  myPID.setMode(ACTIVE);
   
   operating_time = millis();
   last_sampling_timer = millis();
@@ -52,6 +56,8 @@ void setup() {
   Serial.println(myPID.getKd());
   Serial.print("Sampling Time: ");
   Serial.println(myPID.getSamplingTime());
+  Serial.print("Mode: ");
+  Serial.println(myPID.getMode());
   Serial.println("---------------");
 }
 

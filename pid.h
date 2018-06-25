@@ -1,17 +1,6 @@
 #ifndef PID_H
 #define PID_H
 
-//вкл/выкл контроллера ???
-//http://brettbeauregard.com/blog/2011/04/improving-the-beginner%e2%80%99s-pid-onoff/
-
-//инициализация контроллера !
-//http://brettbeauregard.com/blog/2011/04/improving-the-beginner%e2%80%99s-pid-initialization/
-
-//направление !
-//http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-direction/
-
-//http://brettbeauregard.com/blog/
-//https://github.com/br3ttb/Arduino-PID-Library/blob/master/PID_v1.cpp
 class PID
 {
 public:
@@ -31,25 +20,28 @@ public:
     PID();
     void reset();
 
-    float update(float *set_point, float *value_obj); //
-    void setOutputLimits(float *u1, float *u2);       // +
+    float update(float *set_point, float *value_obj);
+    void setOutputLimits(float *u1, float *u2);
     void setCoefficients(float p, float i, float d,
-                         bool direction);             // +
-    void setSamplingTime(float*);                     // +
-    void setReverseDirection();                       // +
-    void setInputOutput(float, float, float);         // +
-    //void initialize();                                //
-    void setMode(bool);                               // +
+                         bool direction);
+    void setSamplingTime(float*);
+    void setReverseDirection();
+    void setInputOutput(float, float, float);
+    //void initialize();
+    void setMode(bool);
 
     float getKi();
     float getKp();
     float getKd();
     float getSamplingTime();
+    bool getMode();
 
 private:
     bool _no_dk;            // флаг для нейтрализаци всплесков по управлению
-    bool _pom;              // флаг дл использовани другого вида пропорциональной составлющей
-    bool _mode;             // режим работы контроллера (true - ручной, false - автоматический)
+    bool _pom;              // флаг дл использовани другого вида пропорциональной
+                            // составлющей
+    bool _mode;             // режим работы контроллера
+                            // (true - ручной, false - автоматический)
 
     float k_i;              // интегральный коэффициент
     float k_p;              // пропорциональный коэффициент
